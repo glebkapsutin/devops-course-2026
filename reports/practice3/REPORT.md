@@ -55,6 +55,18 @@
 
 После создания зеркала все ветки и теги отправляются в оба репозитория, а тестовый коммит проверяет синхронизацию.
 
+Команда `git push origin main` отправила коммит `chore: test multi-remote push` сразу по двум push-адресам. Проверка `ls-remote` показала одинаковый хеш ветки `main` в обоих репозиториях.
+
+![Два remote и одинаковый хеш main](assets/16_multiremote.png)
+
+### Основной репозиторий
+
+![Основной репозиторий после тестового push](assets/17_primary_repository.png)
+
+### Репозиторий-зеркало
+
+![Зеркало после тестового push](assets/18_mirror_repository.png)
+
 ## Задание 5. Cherry-pick, Reflog и Revert
 
 ### Cherry-pick
