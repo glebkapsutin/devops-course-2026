@@ -1,0 +1,12 @@
+#!/bin/sh
+
+commit_msg=$(cat "$1")
+pattern='^(feat|fix|docs|chore|refactor|merge|test|ci|build|perf|style)(\(.+\))?: .+'
+
+if ! printf '%s\n' "$commit_msg" | grep -qE "$pattern"; then
+    echo "ОШИБКА: сообщение коммита не соответствует Conventional Commits."
+    echo "Ожидаемый формат: <type>: <description>"
+    echo "Примеры: feat: add login, fix: typo in header, docs: update README"
+    echo "Ваше сообщение: $commit_msg"
+    exit 1
+fi
