@@ -56,5 +56,14 @@ world_writable="$(find /var/www/devops-site -perm -o+w -print 2>/dev/null)"
 key_mode="$(sudo stat -c '%a' /etc/ssl/private/devops.key 2>/dev/null || true)"
 check 'Нет общедоступной записи; ключ 600' 'clean/600' "$(if [[ -z "$world_writable" ]]; then echo clean; else echo writable; fi)/$key_mode"
 
+echo '[5] Контейнеризация'
+check 'Служба docker активна' 'active' "$(systemctl is-active docker 2>/dev/null || true)"
+check 'Контейнер БД healthy' 'healthy' "$(sudo docker inspect -f '{{.State.Health.Status}}' app-db-1 2>/dev/null || true)"
+nonloopback="$(ss -tlnH | awk '$4 ~ /:(5000|5432)$/ && $4 !~ /^127\.0\.0\.1:/ {print $4}')"
+loopback5000="$(ss -tlnH | awk '$4 == "127.0.0.1:5000" {print $4; exit}')"
+if [[ -z "$nonloopback" && "$loopback5000" == '127.0.0.1:5000' ]]; then port_state=loopback-only; else port_state=exposed-or-missing; fi
+check '5000 только loopback; 5432 не опубликован' 'loopback-only' "$port_state"
+check 'Права .env равны 600' '600' "$(stat -c '%a' /home/devops/app/.env 2>/dev/null || true)"
+
 echo "Пройдено: $PASS, не пройдено: $FAIL"
 [[ "$FAIL" -eq 0 ]]
