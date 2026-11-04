@@ -84,3 +84,15 @@ ClientAliveCountMax 2
 Сертификат создан командой `openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/private/devops.key -out /etc/ssl/certs/devops.crt -subj '/CN=devops.local' -addext 'subjectAltName=DNS:devops.local'`. Срок действия: 02.11.2026–02.11.2027. Закрытый ключ `/etc/ssl/private/devops.key` принадлежит root и имеет права 600; открытый сертификат `/etc/ssl/certs/devops.crt` имеет права 644. На Mac открытый сертификат расположен в `~/devops.crt`; curl с `--cacert` проверяет его и имя `devops.local`. Из-за особенностей разрешения `.local` на данном Mac в curl используется `-4`.
 
 Перед доставкой сайта в UTM 4.7.5 создана полная остановленная копия `04-nginx-https-backup` (эквивалент контрольной точки для восстановления; снимки в установленной версии UTM недоступны). Копию не запускать одновременно с основной VM из-за совпадающих сетевых параметров.
+
+## 9. Контейнеризация
+
+Docker Engine 29.9.3 и Compose v5.7.0 установлены из официального APT-репозитория Docker (`/etc/apt/sources.list.d/docker.sources`, ключ `/etc/apt/keyrings/docker.asc`). Служба `docker` активна. В группе `docker` находится `devops`, который уже имеет право `sudo`; `docker run --rm hello-world` работает без `sudo`.
+
+Проект размещён на сервере в `/home/devops/app`. Исходники приходят из каталога `app/` репозитория через `rsync --exclude=.env`, чтобы доставка с `--delete` не удалила секрет. Файл `/home/devops/app/.env` существует только на VM, принадлежит `devops`, имеет права 600 и содержит случайный пароль PostgreSQL. В репозитории хранится только `.env.example`; `.env` исключён через `.gitignore` и `.dockerignore`.
+
+Сервис `db` использует образ `postgres:16-alpine`, сеть `app_backend` и именованный том `app_db_data` в `/var/lib/postgresql/data`. Порт 5432 на узле не опубликован. Сервис `app` собирается по Dockerfile на базе `python:3.12-slim`, запускается от непривилегированного пользователя `app` (UID 999), ожидает `db: healthy` и публикует только `127.0.0.1:5000`. Имя `db` разрешается внутри сети Compose. Обычный `docker compose down` сохраняет том и счётчик, а `down -v` удаляет том и сбрасывает счётчик; последняя команда применялась только к учебным данным.
+
+В HTTPS-блоке `/etc/nginx/sites-available/devops-site` добавлено `location /app/` с `proxy_pass http://127.0.0.1:5000/` и заголовками `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`. Статический ресурс `/` остаётся. `https://devops.local/app/health` возвращает `ok`, `/app/` увеличивает счётчик. При остановке контейнера приложения Nginx вернул 502 и записал `connect() failed (111: Connection refused) while connecting to upstream`; после запуска приложения ресурс восстановился.
+
+Проверка публикации `-p 5001:5000` показала доступ к `http://devops.local:5001/health` с Mac при отсутствии правила 5001 в UFW: Docker создал правило DNAT в цепочке DOCKER. Тестовый контейнер остановлен. Для постоянного приложения оставлена только loopback-публикация 5000, поэтому обхода UFW извне нет.
