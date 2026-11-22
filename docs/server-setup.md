@@ -101,7 +101,9 @@ Docker Engine 29.9.3 и Compose v5.7.0 установлены из официа�
 
 Рабочий каталог: `ansible/`. Контроллер запускает плейбуки по SSH на отдельной чистой Ubuntu 24.04. Текущую VM из практических №5–7 не переиспользуйте для bootstrap. В локальном варианте SSH гостя проброшен на 127.0.0.1:2223 и HTTP на 127.0.0.1:8081. Для Host-only укажите адрес и порт 22 в обоих inventory. Добавьте и сверяйте ключ SSH-сервера в known_hosts до первого запуска.
 
-Роли `base`, `ssh`, `nginx`, `app` устанавливают зависимости и Docker, готовят ключевой доступ и UFW, настраивают прокси и запускают образ. `app_image` указывает на GHCR. Перед развёртыванием задайте в `group_vars/all.yml` полный SHA коммита, образ которого действительно доступен. Контейнер слушает 5000 только на loopback, Nginx отдаёт `/health` через порт 80.
+Роли `base`, `ssh`, `nginx`, `app` устанавливают зависимости и Docker, готовят ключевой доступ и UFW, настраивают прокси и запускают образ. `app_image` указывает на GHCR. В `group_vars/all.yml` закреплён SHA `2ff3e049a3b4a78c683b92a8dd6328cfbc1c07c9` образа `ghcr.io/glebkapsutin/devops-ci-app`. При смене SHA проверьте доступность манифеста до запуска. Контейнер слушает 5000 только на loopback, Nginx отдаёт `/health` через порт 80.
 
 Из `ansible/` установите коллекции: `ansible-galaxy collection install -r requirements.yml`.
 Первый запуск: `ansible-playbook -i inventory/bootstrap.ini site.yml` через student с установленным открытым ключом. При sudo с паролем используйте `--ask-become-pass`. Следующие запуски: `ansible-playbook site.yml` через devops. Аудит без изменений: `ansible-playbook verify.yml`.
+
+Учебный стенд №11: отдельная Ubuntu Server 24.04.5 amd64 в QEMU. Контроллер проверяет заранее известный ключ гостя через `ANSIBLE_SSH_COMMON_ARGS=-o UserKnownHostsFile=/path/to/known_hosts`. В режиме QEMU проверяйте `curl -f http://127.0.0.1:8081/health`. Доступ к портам 2223 и 8081 ограничен loopback Mac.

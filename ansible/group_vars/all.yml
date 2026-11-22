@@ -1,6 +1,6 @@
 ---
 app_image: ghcr.io/glebkapsutin/devops-ci-app
-app_tag: ""
+app_tag: "2ff3e049a3b4a78c683b92a8dd6328cfbc1c07c9"
 app_container_name: devops-ci-app
 app_host_port: 5000
 app_internal_port: 5000
