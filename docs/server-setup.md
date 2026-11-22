@@ -96,3 +96,12 @@ Docker Engine 29.9.3 и Compose v5.7.0 установлены из официа�
 В HTTPS-блоке `/etc/nginx/sites-available/devops-site` добавлено `location /app/` с `proxy_pass http://127.0.0.1:5000/` и заголовками `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`. Статический ресурс `/` остаётся. `https://devops.local/app/health` возвращает `ok`, `/app/` увеличивает счётчик. При остановке контейнера приложения Nginx вернул 502 и записал `connect() failed (111: Connection refused) while connecting to upstream`; после запуска приложения ресурс восстановился.
 
 Проверка публикации `-p 5001:5000` показала доступ к `http://devops.local:5001/health` с Mac при отсутствии правила 5001 в UFW: Docker создал правило DNAT в цепочке DOCKER. Тестовый контейнер остановлен. Для постоянного приложения оставлена только loopback-публикация 5000, поэтому обхода UFW извне нет.
+
+## 10. Ansible
+
+Рабочий каталог: `ansible/`. Контроллер запускает плейбуки по SSH на отдельной чистой Ubuntu 24.04. Текущую VM из практических №5–7 не переиспользуйте для bootstrap. В локальном варианте SSH гостя проброшен на 127.0.0.1:2223 и HTTP на 127.0.0.1:8081. Для Host-only укажите адрес и порт 22 в обоих inventory. Добавьте и сверяйте ключ SSH-сервера в known_hosts до первого запуска.
+
+Роли `base`, `ssh`, `nginx`, `app` устанавливают зависимости и Docker, готовят ключевой доступ и UFW, настраивают прокси и запускают образ. `app_image` указывает на GHCR. Перед развёртыванием задайте в `group_vars/all.yml` полный SHA коммита, образ которого действительно доступен. Контейнер слушает 5000 только на loopback, Nginx отдаёт `/health` через порт 80.
+
+Из `ansible/` установите коллекции: `ansible-galaxy collection install -r requirements.yml`.
+Первый запуск: `ansible-playbook -i inventory/bootstrap.ini site.yml` через student с установленным открытым ключом. При sudo с паролем используйте `--ask-become-pass`. Следующие запуски: `ansible-playbook site.yml` через devops. Аудит без изменений: `ansible-playbook verify.yml`.

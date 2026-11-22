@@ -1,0 +1,15 @@
+---
+- name: Configure and deploy devops VM
+  hosts: vm
+  become: true
+  pre_tasks:
+    - name: Require a commit tag
+      ansible.builtin.assert:
+        that:
+          - app_tag is match('^[a-f0-9]{40}$')
+        fail_msg: Укажите полный SHA доступного образа GHCR.
+  roles:
+    - base
+    - ssh
+    - nginx
+    - app
